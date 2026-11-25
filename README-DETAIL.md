@@ -103,9 +103,85 @@ products
 
 ### 方案 A：使用本地 MongoDB（推荐先跑通）
 
-#### 1. 确认 MongoDB 已启动
+#### 1. 安装并确认 MongoDB 已启动
 
-在 macOS 上如果用 Homebrew 安装，可以用：
+##### Windows（MSI 安装，推荐）
+
+1. 下载 MongoDB Community Server：
+
+   https://www.mongodb.com/try/download/community
+
+   选择：
+
+   - **Version**：当前稳定版
+   - **Platform**：Windows
+   - **Package**：MSI
+
+2. 双击下载的 `.msi` 文件安装。安装类型选 **Complete** 即可。
+
+3. 关键一步：保持 **Install MongoDB as a Service** 勾选。这样 MongoDB 会作为 Windows 服务在后台运行。服务名默认是 `MongoDB`。是否安装 MongoDB Compass 可选。
+
+4. 安装完成后，以**管理员身份**打开 PowerShell，检查服务状态：
+
+   ```powershell
+   Get-Service MongoDB
+   ```
+
+   如果 `Status` 是 `Stopped`，启动它：
+
+   ```powershell
+   Start-Service MongoDB
+   ```
+
+   或者在管理员命令提示符中执行：
+
+   ```cmd
+   net start MongoDB
+   ```
+
+5. 确认 MongoDB 正在监听默认端口 `27017`：
+
+   ```cmd
+   netstat -ano | findstr :27017
+   ```
+
+   看到 `LISTENING` 就说明已启动。
+
+6. 可选：验证能否连接。先把 MongoDB 的 `bin` 目录加入 PATH：
+
+   ```text
+   C:\Program Files\MongoDB\Server\<版本号>\bin
+   ```
+
+   例如 `C:\Program Files\MongoDB\Server\8.0\bin`。然后执行：
+
+   ```powershell
+   mongosh "mongodb://127.0.0.1:27017/productdb"
+   ```
+
+   能进入 MongoDB Shell 就说明本地 MongoDB 可用，输入 `exit` 退出即可。
+
+##### Windows：安装时没有勾选服务怎么办
+
+如果安装时取消勾选了 **Install MongoDB as a Service**，可以手动启动一次。
+
+先创建数据目录：
+
+```cmd
+mkdir C:\data\db
+```
+
+再用完整路径启动（把 `<版本号>` 换成实际版本，例如 `8.0`）：
+
+```cmd
+"C:\Program Files\MongoDB\Server\<版本号>\bin\mongod.exe" --dbpath C:\data\db
+```
+
+这个命令行窗口不能关闭；关闭窗口就等于停止 MongoDB。看到等待连接的日志后，再继续后面的网页操作。
+
+##### macOS（Homebrew）
+
+如果用 Homebrew 安装，可以用：
 
 ```bash
 brew services start mongodb-community
@@ -477,6 +553,9 @@ curl http://localhost:3000/api/products/<_id>
 | 生成时提示“请至少添加一个属性” | 没有添加属性 | 至少添加一个，例如 `name` |
 | 生成时提示模型名称不合法 | 使用了连字符、空格或数字开头 | 改成 `Product` |
 | `npm run dev` 报连接错误 | MongoDB 没启动或连接字符串错误 | 检查 `.env` 和 MongoDB 服务 |
+| Windows 下 `Get-Service MongoDB` 提示找不到服务 | 安装时没勾选“Install MongoDB as a Service”，或服务名被改过 | 重新运行 MSI 修复并勾选服务；或打开 `services.msc` 查看实际服务名；也可按上文手动启动 `mongod.exe` |
+| Windows 下提示 `mongosh` 不是内部或外部命令 | `bin` 目录未加入 PATH | 把 `C:\Program Files\MongoDB\Server\<版本号>\bin` 加入 PATH，或直接使用完整路径运行 `mongosh.exe` |
+| Windows 下 `netstat` 看不到 `27017` | 服务未启动，或配置里改过端口 | 以管理员身份执行 `Start-Service MongoDB`，再检查 `C:\Program Files\MongoDB\Server\<版本号>\bin\mongod.cfg` 中的 `net.port` |
 | Atlas 连接超时 | IP 未放行 | 在 Atlas 的 Network Access 中放行当前 IP |
 | 访问接口返回 404 | 路径写错 | 确认是 `/api/products`，不是 `/api/product` |
 | PUT 后提示必填字段校验失败 | 请求体中把必填字段传成了 `null` 或空字符串 | 只发送要修改的字段，例如 `{"price": 899.99}`；必填字段不要传空值 |
