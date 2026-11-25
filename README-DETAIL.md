@@ -10,6 +10,7 @@
 
 | 准备项 | 说明 |
 |---|---|
+| 操作系统 | Windows、macOS、Linux 均可；下文分别给出本地 MongoDB 的启动方式 |
 | 现代浏览器 | Chrome、Edge、Firefox、Safari 均可 |
 | Node.js | 20 或更高版本；用 `node -v` 检查 |
 | npm | 随 Node.js 一起安装；用 `npm -v` 检查 |
@@ -105,83 +106,9 @@ products
 
 #### 1. 安装并确认 MongoDB 已启动
 
-##### Windows（MSI 安装，推荐）
+##### macOS（Homebrew 安装）
 
-1. 下载 MongoDB Community Server：
-
-   https://www.mongodb.com/try/download/community
-
-   选择：
-
-   - **Version**：当前稳定版
-   - **Platform**：Windows
-   - **Package**：MSI
-
-2. 双击下载的 `.msi` 文件安装。安装类型选 **Complete** 即可。
-
-3. 关键一步：保持 **Install MongoDB as a Service** 勾选。这样 MongoDB 会作为 Windows 服务在后台运行。服务名默认是 `MongoDB`。是否安装 MongoDB Compass 可选。
-
-4. 安装完成后，以**管理员身份**打开 PowerShell，检查服务状态：
-
-   ```powershell
-   Get-Service MongoDB
-   ```
-
-   如果 `Status` 是 `Stopped`，启动它：
-
-   ```powershell
-   Start-Service MongoDB
-   ```
-
-   或者在管理员命令提示符中执行：
-
-   ```cmd
-   net start MongoDB
-   ```
-
-5. 确认 MongoDB 正在监听默认端口 `27017`：
-
-   ```cmd
-   netstat -ano | findstr :27017
-   ```
-
-   看到 `LISTENING` 就说明已启动。
-
-6. 可选：验证能否连接。先把 MongoDB 的 `bin` 目录加入 PATH：
-
-   ```text
-   C:\Program Files\MongoDB\Server\<版本号>\bin
-   ```
-
-   例如 `C:\Program Files\MongoDB\Server\8.0\bin`。然后执行：
-
-   ```powershell
-   mongosh "mongodb://127.0.0.1:27017/productdb"
-   ```
-
-   能进入 MongoDB Shell 就说明本地 MongoDB 可用，输入 `exit` 退出即可。
-
-##### Windows：安装时没有勾选服务怎么办
-
-如果安装时取消勾选了 **Install MongoDB as a Service**，可以手动启动一次。
-
-先创建数据目录：
-
-```cmd
-mkdir C:\data\db
-```
-
-再用完整路径启动（把 `<版本号>` 换成实际版本，例如 `8.0`）：
-
-```cmd
-"C:\Program Files\MongoDB\Server\<版本号>\bin\mongod.exe" --dbpath C:\data\db
-```
-
-这个命令行窗口不能关闭；关闭窗口就等于停止 MongoDB。看到等待连接的日志后，再继续后面的网页操作。
-
-##### macOS（Homebrew）
-
-如果用 Homebrew 安装，可以用：
+启动 MongoDB 服务：
 
 ```bash
 brew services start mongodb-community
@@ -194,6 +121,64 @@ lsof -i :27017
 ```
 
 如果能看到 `mongod` 进程，说明 MongoDB 已启动。
+
+##### Windows（官方 MSI 安装，推荐）
+
+1. 下载 MongoDB Community Server 的 MSI 安装包：  
+   https://www.mongodb.com/try/download/community  
+   选择当前稳定版本，Platform 选 **Windows**，Package 选 **MSI**。
+
+2. 双击安装包，安装类型选择 **Complete**。
+
+3. 到 **Service Configuration** 页面时，保持勾选 **Install MongoDB as a Service**，服务名保持默认的 `MongoDB`。数据目录和日志目录保持默认即可，通常类似：
+
+   ```text
+   C:\Program Files\MongoDB\Server\<版本号>\data
+   C:\Program Files\MongoDB\Server\<版本号>\log
+   ```
+
+4. 安装完成后，以**管理员身份**打开 PowerShell，启动服务：
+
+   ```powershell
+   net start MongoDB
+   ```
+
+   如果提示服务已经启动，可以直接进入下一步。
+
+5. 验证 MongoDB 是否正常：
+
+   ```powershell
+   & "C:\Program Files\MongoDB\Server\<版本号>\bin\mongosh.exe" --eval "db.runCommand({ ping: 1 })"
+   ```
+
+   把 `<版本号>` 换成实际安装的版本，例如 `8.0`。看到返回中包含 `ok: 1` 就说明连接正常。
+
+   如果安装器没有附带 `mongosh`，可以单独安装 MongoDB Shell：  
+   https://www.mongodb.com/try/download/shell
+
+6. 也可以检查默认端口是否被监听：
+
+   ```powershell
+   netstat -ano | findstr :27017
+   ```
+
+> 如果安装时没有把 MongoDB 安装成服务，也可以手动启动。创建数据目录并在 PowerShell 中运行：
+>
+> ```powershell
+> mkdir C:\data\db
+> & "C:\Program Files\MongoDB\Server\<版本号>\bin\mongod.exe" --dbpath C:\data\db
+> ```
+>
+> 这个窗口要保持打开；关闭窗口会停止 MongoDB。
+
+##### Linux（补充）
+
+如果使用 systemd，通常可以用：
+
+```bash
+sudo systemctl start mongod
+sudo systemctl status mongod
+```
 
 #### 2. 在网页中选择本地 MongoDB
 
@@ -371,7 +356,17 @@ unzip product-api.zip
 cd product-api
 ```
 
-Windows 用户可以右键 `product-api.zip`，选择“全部提取”，然后进入解压出来的 `product-api` 文件夹。
+Windows 用户可以直接右键 `product-api.zip`，选择“全部提取”，然后进入解压出来的 `product-api` 文件夹。
+
+也可以用 PowerShell 解压：
+
+```powershell
+cd $env:USERPROFILE\Downloads
+Expand-Archive -Path .\product-api.zip -DestinationPath . -Force
+cd product-api
+```
+
+后续 `npm install` 和 `npm run dev` 在 Windows PowerShell、cmd 或 macOS/Linux 终端中的写法相同。
 
 解压后的目录结构：
 
@@ -454,6 +449,14 @@ http://localhost:3000/api/products
 ```
 
 ### 方式二：用 curl 完整测试
+
+> **Windows PowerShell 注意**：`curl` 是 `Invoke-WebRequest` 的别名，且不支持用 `\` 续行。请把下面命令中的 `curl` 改为 `curl.exe`，并把命令写成一行。例如：
+>
+> ```powershell
+> curl.exe -X POST http://localhost:3000/api/products -H "Content-Type: application/json" -d '{"name":"Laptop","price":999.99,"category":"Electronics","inStock":true,"releaseDate":"2026-01-15"}'
+> ```
+>
+> 也可以打开 **cmd** 或 **Git Bash**，直接复制下面的 bash 命令。
 
 #### 1. 创建商品
 
@@ -553,9 +556,9 @@ curl http://localhost:3000/api/products/<_id>
 | 生成时提示“请至少添加一个属性” | 没有添加属性 | 至少添加一个，例如 `name` |
 | 生成时提示模型名称不合法 | 使用了连字符、空格或数字开头 | 改成 `Product` |
 | `npm run dev` 报连接错误 | MongoDB 没启动或连接字符串错误 | 检查 `.env` 和 MongoDB 服务 |
-| Windows 下 `Get-Service MongoDB` 提示找不到服务 | 安装时没勾选“Install MongoDB as a Service”，或服务名被改过 | 重新运行 MSI 修复并勾选服务；或打开 `services.msc` 查看实际服务名；也可按上文手动启动 `mongod.exe` |
-| Windows 下提示 `mongosh` 不是内部或外部命令 | `bin` 目录未加入 PATH | 把 `C:\Program Files\MongoDB\Server\<版本号>\bin` 加入 PATH，或直接使用完整路径运行 `mongosh.exe` |
-| Windows 下 `netstat` 看不到 `27017` | 服务未启动，或配置里改过端口 | 以管理员身份执行 `Start-Service MongoDB`，再检查 `C:\Program Files\MongoDB\Server\<版本号>\bin\mongod.cfg` 中的 `net.port` |
+| Windows 执行 `net start MongoDB` 提示“服务名无效” | 安装时未勾选“Install MongoDB as a Service”，或服务名不是 `MongoDB` | 重新运行 MSI 安装并勾选服务；或打开 `services.msc` 查实际服务名；也可手动运行 `mongod.exe --dbpath C:\data\db` |
+| Windows 提示找不到 `mongod` / `mongosh` | 安装目录未加入 PATH | 使用完整路径，例如 `C:\Program Files\MongoDB\Server\<版本号>\bin\mongosh.exe` |
+| Windows PowerShell 执行 `curl` 报参数错误 | `curl` 是 `Invoke-WebRequest` 的别名 | 改用 `curl.exe`，或切换到 cmd / Git Bash |
 | Atlas 连接超时 | IP 未放行 | 在 Atlas 的 Network Access 中放行当前 IP |
 | 访问接口返回 404 | 路径写错 | 确认是 `/api/products`，不是 `/api/product` |
 | PUT 后提示必填字段校验失败 | 请求体中把必填字段传成了 `null` 或空字符串 | 只发送要修改的字段，例如 `{"price": 899.99}`；必填字段不要传空值 |
