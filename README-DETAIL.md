@@ -137,30 +137,50 @@ lsof -i :27017
    C:\Program Files\MongoDB\Server\<版本号>\log
    ```
 
-4. 安装完成后，以**管理员身份**打开 PowerShell，启动服务：
+4. 安装完成后，以**管理员身份**打开 PowerShell，检查服务状态：
 
    ```powershell
-   net start MongoDB
+   Get-Service MongoDB
    ```
 
-   如果提示服务已经启动，可以直接进入下一步。
+   如果 `Status` 是 `Stopped`，启动它：
 
-5. 验证 MongoDB 是否正常：
+   ```powershell
+   Start-Service MongoDB
+   ```
+
+   也可以在管理员命令提示符中执行 `net start MongoDB`。如果提示服务已经启动，可以直接进入下一步。
+
+5. 检查默认端口 `27017` 是否被监听：
+
+   ```powershell
+   netstat -ano | findstr :27017
+   ```
+
+   看到 `LISTENING` 就说明 MongoDB 已启动。
+
+6. 可选：验证能否连接。先把 MongoDB 的 `bin` 目录加入 PATH：
+
+   ```text
+   C:\Program Files\MongoDB\Server\<版本号>\bin
+   ```
+
+   例如 `C:\Program Files\MongoDB\Server\8.0\bin`。然后执行：
+
+   ```powershell
+   mongosh "mongodb://127.0.0.1:27017/productdb"
+   ```
+
+   能进入 MongoDB Shell 就说明本地 MongoDB 可用，输入 `exit` 退出即可。
+
+   如果不想改 PATH，也可以直接用完整路径执行：
 
    ```powershell
    & "C:\Program Files\MongoDB\Server\<版本号>\bin\mongosh.exe" --eval "db.runCommand({ ping: 1 })"
    ```
 
-   把 `<版本号>` 换成实际安装的版本，例如 `8.0`。看到返回中包含 `ok: 1` 就说明连接正常。
-
-   如果安装器没有附带 `mongosh`，可以单独安装 MongoDB Shell：  
+   看到返回中包含 `ok: 1` 就说明连接正常。如果安装器没有附带 `mongosh`，可以单独安装 MongoDB Shell：  
    https://www.mongodb.com/try/download/shell
-
-6. 也可以检查默认端口是否被监听：
-
-   ```powershell
-   netstat -ano | findstr :27017
-   ```
 
 > 如果安装时没有把 MongoDB 安装成服务，也可以手动启动。创建数据目录并在 PowerShell 中运行：
 >
@@ -557,7 +577,8 @@ curl http://localhost:3000/api/products/<_id>
 | 生成时提示模型名称不合法 | 使用了连字符、空格或数字开头 | 改成 `Product` |
 | `npm run dev` 报连接错误 | MongoDB 没启动或连接字符串错误 | 检查 `.env` 和 MongoDB 服务 |
 | Windows 执行 `net start MongoDB` 提示“服务名无效” | 安装时未勾选“Install MongoDB as a Service”，或服务名不是 `MongoDB` | 重新运行 MSI 安装并勾选服务；或打开 `services.msc` 查实际服务名；也可手动运行 `mongod.exe --dbpath C:\data\db` |
-| Windows 提示找不到 `mongod` / `mongosh` | 安装目录未加入 PATH | 使用完整路径，例如 `C:\Program Files\MongoDB\Server\<版本号>\bin\mongosh.exe` |
+| Windows 提示找不到 `mongod` / `mongosh` | 安装目录未加入 PATH | 把 `C:\Program Files\MongoDB\Server\<版本号>\bin` 加入 PATH，或直接使用完整路径运行 `mongosh.exe` |
+| Windows 下 `netstat` 看不到 `27017` | 服务未启动，或配置里改过端口 | 以管理员身份执行 `Start-Service MongoDB`；再检查 `C:\Program Files\MongoDB\Server\<版本号>\bin\mongod.cfg` 中的 `net.port` |
 | Windows PowerShell 执行 `curl` 报参数错误 | `curl` 是 `Invoke-WebRequest` 的别名 | 改用 `curl.exe`，或切换到 cmd / Git Bash |
 | Atlas 连接超时 | IP 未放行 | 在 Atlas 的 Network Access 中放行当前 IP |
 | 访问接口返回 404 | 路径写错 | 确认是 `/api/products`，不是 `/api/product` |
